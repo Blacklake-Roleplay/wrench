@@ -4,6 +4,8 @@
 # Wrench
 A small little program used to tell if Project Zomboid needs to restart due to a workshop update. It's designed to be used in any server set up.
 
+---
+
 ## How do I use this?
 Here's a small guide
 
@@ -32,7 +34,9 @@ Key things to know:
 I just wanted something that worked without having to over-engineer it
 Might get changed in the future, but it's good enough for now, and can be paired with bash in useful ways (e.g. && or || based on if its successful or not)
 
-### Example bash script with wrench integration
+---
+
+## Example bash script with wrench integration
 This is a simple bash script on how to use wrench, and how you could handle an update.
 ```
 #!/bin/bash
