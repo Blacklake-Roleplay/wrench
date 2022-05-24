@@ -26,7 +26,7 @@ Key things to know:
 - 1 means there's no update/error/crash/ohgodrun
 
 ### Why use exit codes
-I just wanted something that worked without having to over engineer it, so thats why
+I just wanted something that worked without having to over-engineer it
 Might get changed in the future, but it's good enough for now, and can be paired with bash in useful ways (e.g. && or || based on if its successful or not)
 
 ### Example bash script with wrench integration
@@ -40,12 +40,12 @@ export DISCORD_WEB_HOOK=1236712/abcade
  
 while true; do 
     sleep 30
-    # && means only run on successful error code
+    # && means only run on successful exit (e.g. no error code 1 or higher)
     ./wrench && (sleep 5m; tmux kill-session -t pz)
 done;
 ```
 
-In my personal server, I use [Justfile]() and tmux to handle the server, so I'm able to do stuff like
+In my personal server, I use [Just](https://github.com/casey/just) and tmux to handle the server, so I'm able to do stuff like
 `tmux send -t {{session_name}} 'servermsg "{{content}}"' ENTER`. 
 
 This lets me send a message that a mod needs to update, and then safely quit the session by sending /save and /quit.
@@ -53,6 +53,9 @@ This lets me send a message that a mod needs to update, and then safely quit the
 ## How do I compile?
 - Install rust (https://www.rust-lang.org/tools/install)
 - `cargo build --release`. The executable will be placed into a new folder called `target/release`
+
+
+## 
 
 ## TODO:
 - Toml config (?)
