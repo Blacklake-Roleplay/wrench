@@ -54,8 +54,15 @@ This lets me send a message that a mod needs to update, and then safely quit the
 - Install rust (https://www.rust-lang.org/tools/install)
 - `cargo build --release`. The executable will be placed into a new folder called `target/release`
 
+## I've got x issue, can you help?
+Perhaps, this tool was originally made to fix my itch, but it seems like it might do for others too. If you run into an issue, create a github issue, and I'll see if I can help.
 
-## 
+If you support me, I'll personally try help fix your issue.
+
+## Donations
+This is a small tool I made in my spare time for a server with a few friends.
+If you find it helpful and wish to support me, you can do so here: https://www.buymeacoffee.com/Vamist
+
 
 ## TODO:
 - Toml config (?)
