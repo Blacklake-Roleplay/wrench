@@ -1,0 +1,25 @@
+//
+// Created by intellij-pest on 2022-05-21
+// Steam acf format
+//
+// Fairly basic, seems to just contains two things
+// A pair is two strings, e.g. "name": "value"
+// And a collection, which is "collection_name" { }
+// A collection can contain multiple pairs, or another collection
+// Author: vam
+//
+
+WHITESPACE = _{ " " | "\t" | "\r" | "\n" }
+
+string = ${ "\"" ~ inner ~ "\"" }
+inner = @{ char* }
+char = {
+    !("\"" | "\\") ~ ANY
+    | "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t")
+    | "\\" ~ ("u" ~ ASCII_HEX_DIGIT{4})
+}
+pair = { string ~ string }
+
+collection = {
+    string ~ "{" ~ (pair | collection)* ~ "}"
+}
