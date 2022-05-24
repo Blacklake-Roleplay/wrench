@@ -1,3 +1,6 @@
+<p align="center"><img src="https://cdn.discordapp.com/attachments/361255623456849925/978768474727940156/ohno.gif"/></p>
+
+
 # Wrench
 A small little program used to tell if Project Zomboid needs to restart due to a workshop update. It's designed to be used in any server set up.
 
