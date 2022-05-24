@@ -29,6 +29,27 @@ Key things to know:
 I just wanted something that worked without having to over engineer it, so thats why
 Might get changed in the future, but it's good enough for now, and can be paired with bash in useful ways (e.g. && or || based on if its successful or not)
 
+### Example bash script with wrench integration
+This is a simple bash script on how to use wrench, and how you could handle an update.
+```
+#!/bin/bash
+
+export STEAM_WEB_KEY=abcdef
+export ACF=/home/pz/workshop/appworkshop_108600.acf 
+export DISCORD_WEB_HOOK=1236712/abcade
+ 
+while true; do 
+    sleep 30
+    # && means only run on successful error code
+    ./wrench && (sleep 5m; tmux kill-session -t pz)
+done;
+```
+
+In my personal server, I use [Justfile]() and tmux to handle the server, so I'm able to do stuff like
+`tmux send -t {{session_name}} 'servermsg "{{content}}"' ENTER`. 
+
+This lets me send a message that a mod needs to update, and then safely quit the session by sending /save and /quit.
+
 ## How do I compile?
 - Install rust (https://www.rust-lang.org/tools/install)
 - `cargo build --release`. The executable will be placed into a new folder called `target/release`
