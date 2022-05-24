@@ -32,6 +32,7 @@ Key things to know:
 
 ### Why use exit codes
 I just wanted something that worked without having to over-engineer it
+
 Might get changed in the future, but it's good enough for now, and can be paired with bash in useful ways (e.g. && or || based on if its successful or not)
 
 ---
