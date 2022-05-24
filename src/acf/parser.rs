@@ -11,19 +11,20 @@ use pest::error::Error;
 
 
 #[derive(Parser)]
-#[grammar = "./parser/acf.pest"]
-struct AcfParser;
+#[grammar = "./acf/acf.pest"]
+pub struct AcfParser;
 
 #[derive(Debug, Clone)]
-enum AcfValue<'a> {
+pub enum AcfValue<'a> {
     Pair(&'a str, &'a str),
     Collection(&'a str, Vec<AcfValue<'a>>),
     Null
 }
 
 // Read's a file and attempts to parse it into an AcfValue
-pub fn parse_acf(file: &str) -> Result<AcfValue, Error<Rule>> {
-    let acf = AcfParser::parse(Rule::collection, file)?.next()?;
+pub fn file_to_acf(file: &str) -> Result<AcfValue, Error<Rule>> {
+    // Just panic here if the file is invalid
+    let acf = AcfParser::parse(Rule::collection, file)?.next().expect("Acf file provided could not be read");
 
     use pest::iterators::Pair;
     fn parse_value(pair: Pair<Rule>) -> AcfValue {

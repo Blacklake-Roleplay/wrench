@@ -2,8 +2,10 @@ extern crate pest;
 #[macro_use]
 
 extern crate pest_derive;
+mod acf;
 
 use acf::parser;
+use acf::parser::AcfValue;
 
 use rand::{thread_rng, Rng};
 use serde::{Deserialize, Serialize};
@@ -63,6 +65,10 @@ struct DiscordEmbedThumbnail {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Try set color_eyre up, otherwise we dont care if it errors,
+    // not worth cluttering up the terminal
+    let _ = color_eyre::install();
+
     // Required variables
     let key = env::var("STEAM_WEB_KEY").expect("Missing steam web api key");
     let path = env::var("ACF").expect("Missing ACF file path");
@@ -71,11 +77,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let discord_key = env::var("DISCORD_WEB_HOOK");
 
     let acf_file = fs::read_to_string(path).unwrap();
-    let acf: AcfValue = parse_acf_file(&acf_file).expect("Could not parse the acf file provided");
+    let acf: AcfValue = parser::file_to_acf(&acf_file).expect("Could not parse the acf file provided");
 
     let workshop: Option<HashMap<&str, u64>> = match acf {
        AcfValue::Collection(_, body) => {
-            Some(workshops_from_acf(body))
+            Some(parser::extract_workshop(body))
         },
         _ => None,
     };
