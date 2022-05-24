@@ -38,3 +38,4 @@ Might get changed in the future, but it's good enough for now, and can be paired
 - Custom 5 min timer
 - Allow people to change the webhook pfp & username
 - Move acf into its own lib and maybe put it on crates.io
+- Unit tests on acf
