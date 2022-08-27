@@ -115,7 +115,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     res.response.publishedfiledetails.into_iter().for_each(|details | {
         let timestamp = workshop.get(details.publishedfileid.as_str());
 
-        if let None = timestamp {
+        if timestamp.is_none() {
             return
         }
 
