@@ -14,8 +14,8 @@ I am open to selling a copy without the common clause licence attached. Please r
 It can include support & maintenance if required.
 
 ## I am a zomboid host:
-I would appreciate credit, or if you are feeling generous, you can donate here: https://ko-fi.com/vamist
-You can reach out to me at dm@vamist.dev if you need support or face issues.
+I would appreciate credit, or if you are feeling generous, you can donate here: https://ko-fi.com/vamist.
+You can reach out to me at dm@vamist.dev if you need support or face issues. 
 
 # How do I use this?
 Here's a small guide
