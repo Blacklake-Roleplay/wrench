@@ -6,7 +6,18 @@ A small little program used to tell if Project Zomboid needs to restart due to a
 
 ---
 
-## How do I use this?
+# Licence.md 
+Please read the licence.md. You are not allowed to sell what is provided in this project.
+
+## I am virtual server provider:
+I am open to selling a copy without the common clause licence attached. Please reach out to dm@vamist.dev if you would like to strike a deal.
+It can include support & maintenance if required.
+
+## I am a zomboid host:
+I would appreciate credit, or if you are feeling generous, you can donate here: https://ko-fi.com/vamist
+You can reach out to me at dm@vamist.dev if you need support or face issues.
+
+# How do I use this?
 Here's a small guide
 
 ## Setup
@@ -62,7 +73,7 @@ This lets me send a message that a mod needs to update, and then safely quit the
 - Install rust (https://www.rust-lang.org/tools/install)
 - `cargo build --release`. The executable will be placed into a new folder called `target/release`
 
-## TODO:
+## TODO (maybe):
 - Toml config (?)
 - Custom 5 min timer
 - Allow people to change the webhook pfp & username

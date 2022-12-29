@@ -1,16 +1,23 @@
-                        Overwatch License Revision 1
-                            (c) Vam-Jam, 2022
+“Commons Clause” License Condition v1.0
 
+The Software is provided to you by the Licensor under the License, as defined below, subject to the following condition.
 
-Permission is hereby granted, free of charge, for anyone to use or distribute 
-the compiled binaries, source code, and documentation (the "Software")
-without attribution.
+Without limiting other conditions in the License, the grant of rights under the License will not include, and the License does not grant to you, the right to Sell the Software.
 
-Permission to modify the Software is only granted to those that have a higher
-competitive matchmaking rank than the copyright holder in Overwatch
-(Blizzard, 2016).
+For purposes of the foregoing, “Sell” means practicing any or all of the rights granted to you under the License to provide to third parties, for a fee or other consideration (including without limitation fees for hosting or consulting/ support services related to the Software), a product or service whose value derives, entirely or substantially, from the functionality of the Software. Any license notice or attribution required by the License must also include this Commons Clause License Condition notice.
 
-The Software is provided in the hope that some will find it useful, but the
-Software comes under NO WARRANTY, EXPRESS OR IMPLIED, and the authors of the
-Software are NOT LIABLE IN THE EVENT OF LOSSES, DAMAGES OR MISUSE relating to
-the Software.
+Software: Wrench
+
+License: MIT
+
+Licensor: Vam-Jam/Vamist
+
+----
+
+Copyright 2022 Vam-Jam/Vamist
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
