@@ -153,7 +153,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // TODO: Allow people to change the url and username
     if let Some(key) = args.discord_key {
-        println!("Hello world");
         let mut rng = thread_rng();
         let time = SystemTime::now()
             .add(Duration::from_secs(60 * 5))
