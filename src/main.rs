@@ -196,7 +196,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         let client = reqwest::Client::new();
         client
-            .post(format!("https://discord.com/api/webhooks/{}", key))
+            .post(format!("https://discord.com/api/webhooks/{key}"))
             .json(&msg)
             .send()
             .await?;
@@ -210,22 +210,21 @@ async fn fetch_changelog(id: &String, header: &String) -> Option<String> {
     let client = client.gzip(true).build();
 
     if let Err(why) = client {
-        println!("Could not build reqwest client for changelogs, {}", why);
+        println!("Could not build reqwest client for changelogs, {why}");
         return None;
     }
 
     let req = client
         .unwrap()
         .get(format!(
-            "https://steamcommunity.com/sharedfiles/filedetails/changelog/{}",
-            id
+            "https://steamcommunity.com/sharedfiles/filedetails/changelog/{id}"
         ))
         .header(USER_AGENT, header)
         .send()
         .await;
 
     if let Err(why) = req {
-        println!("Could not do changelog request, {}", why);
+        println!("Could not do changelog request, {why}");
         return None;
     }
 
@@ -255,8 +254,7 @@ async fn fetch_changelog(id: &String, header: &String) -> Option<String> {
 
     if latest_cl.is_none() {
         println!(
-            "Could not find .workshopAnnouncement for id {}, most likely no change log provided",
-            id
+            "Could not find .workshopAnnouncement for id {id}, most likely no change log provided"
         );
         return None;
     }
@@ -269,14 +267,16 @@ async fn fetch_changelog(id: &String, header: &String) -> Option<String> {
         .and_then(|mut iter| iter.next());
 
     if p.is_none() {
-        println!(
-            "Could not find p tag for id {}, most likely no change log provided",
-            id
-        );
+        println!("Could not find p tag for id {id}, most likely no change log provided");
         return None;
     }
 
     let text = p.unwrap().get(parser).unwrap().inner_html(parser);
+
+    if text.is_empty() {
+        println!("Mod {id} has no changelog, p tag is empty");
+        return None;
+    }
 
     Some(text.replace("<br></br>", "\n"))
 }
