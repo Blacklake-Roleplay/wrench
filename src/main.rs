@@ -35,7 +35,7 @@ struct WorkshopContent {
     time_updated: u64,
     preview_url: String,
 
-    // HACK for changelogs, written manually in a different call
+    // HACK for changelogs, we stuff the changelog here IF discord is enabled
     #[serde(skip_deserializing)]
     changelog: String,
 }
@@ -163,13 +163,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .duration_since(SystemTime::UNIX_EPOCH)
             .unwrap()
             .as_secs();
-        let content = format!("<bzzt> The server is due to restart at <t:{:?}>, the following mods have been updated: <kssht>", time);
+
+        // TODO: Unsure if time needs to be :?
+        let content = format!("<bzzt> The server is due to restart at <t:{time:?}>, the following mods have been updated: <kssht>");
 
         let header = &args.user_agent.unwrap_or_default();
         for mut update in update_list.iter_mut() {
             update.changelog = fetch_changelog(&update.publishedfileid, header)
                 .await
-                .unwrap_or_else(|| "No change log could be fetched".to_string());
+                .unwrap_or_else(|| {
+                    "Change log was not provided or could not be fetched.".to_string()
+                });
         }
 
         let embeds = update_list
@@ -214,7 +218,7 @@ async fn fetch_changelog(id: &String, header: &String) -> Option<String> {
     let client = client.gzip(true).build();
 
     if let Err(why) = client {
-        println!("Could not build reqwest client for changelogs, {why}");
+        println!("Could not build reqwest client for changelog {id}, {why}");
         return None;
     }
 
@@ -228,7 +232,7 @@ async fn fetch_changelog(id: &String, header: &String) -> Option<String> {
         .await;
 
     if let Err(why) = req {
-        println!("Could not do changelog request, {why}");
+        println!("Could not do changelog request for {id}, {why}");
         return None;
     }
 
@@ -240,6 +244,7 @@ async fn fetch_changelog(id: &String, header: &String) -> Option<String> {
 
     let text = text.as_str();
 
+    // Should probably print here? But if text is that big, that's just silly
     if text.len() > u32::MAX as usize {
         println!(
             "Text body bigger then {}, body was {}. Can not be parsed by tl.",
@@ -257,9 +262,7 @@ async fn fetch_changelog(id: &String, header: &String) -> Option<String> {
         .and_then(|mut iter| iter.next());
 
     if latest_cl.is_none() {
-        println!(
-            "Could not find .workshopAnnouncement for id {id}, most likely no change log provided"
-        );
+        println!("Could not find .workshopAnnouncement for id {id}, response was {text}");
         return None;
     }
 
@@ -270,8 +273,9 @@ async fn fetch_changelog(id: &String, header: &String) -> Option<String> {
         .query_selector(parser, "p")
         .and_then(|mut iter| iter.next());
 
+    // This really should not happen, since .workshopAnnouncement was found..
     if p.is_none() {
-        println!("Could not find p tag for id {id}, most likely no change log provided");
+        println!("Could not find p tag for id {id}, response was {text}");
         return None;
     }
 
