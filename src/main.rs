@@ -12,10 +12,10 @@ use rayon::prelude::*;
 use reqwest::header::USER_AGENT;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::fs;
 use std::ops::Add;
 use std::process::exit;
 use std::time::{Duration, SystemTime};
-use std::{env, fs};
 
 /// Steam Api mapping
 #[derive(Deserialize, Debug)]
@@ -85,10 +85,6 @@ struct Args {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Try set color_eyre up, otherwise we dont care if it errors,
-    // not worth cluttering up the terminal
-    let _ = color_eyre::install();
-
     let args = Args::parse();
 
     let acf_file = fs::read_to_string(args.acf_file).unwrap();
@@ -123,8 +119,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .build()
         .expect("Could not build reqwest client, this is bad");
 
-    let res: SteamApiResponse = client.get(url).send().await?.json().await?;
+    let res = client.get(&url).send().await;
 
+    if let Err(why) = res {
+        println!("Error sending get request to steams api. {why}, req was {url}");
+        exit(1);
+    }
+
+    let res: SteamApiResponse = res.unwrap().json().await?;
+
+    // Iterate in parallel, as we can have quite a few (hundred) mods.
     let mut update_list: Vec<WorkshopContent> = res
         .response
         .publishedfiledetails
