@@ -2,7 +2,7 @@
 
 
 # Wrench
-A small little program used to tell if Project Zomboid needs to restart due to a workshop update. It's designed to be used in any server set up.
+A small little program used to tell if Project Zomboid needs to restart due to a workshop update. It's designed to be used in any server setup.
 
 ---
 
@@ -10,36 +10,37 @@ A small little program used to tell if Project Zomboid needs to restart due to a
 Please read the licence.md. You are not allowed to sell what is provided in this project.
 
 ## I am virtual server provider:
-I am open to selling a copy without the common clause licence attached. Please reach out to dm@vamist.dev if you would like to strike a deal.
-It can include support & maintenance if required.
+You are not allowed to try sell this product as a feature of your platform. 
+You may purchase a copy with the licence removed, where you can do what you want with it, which can also include support/maintenance if required (dm@vamist.dev). 
 
 ## I am a zomboid host:
-I would appreciate credit, or if you are feeling generous, you can donate here: https://ko-fi.com/vamist 
-.You can reach out to me at dm@vamist.dev if you need support or face issues. 
+You are free to use this, as long as you do not try to sell this product.
+I would appreciate credit, or if you are feeling generous, you can donate here: https://ko-fi.com/vamist. 
 
 # How do I use this?
 Here's a small guide
 
 ## Setup
-Wrench requires some initial environment variables to work.
+Wrench requires some initial environment variables to work, you can read the most up to date ones by doing `wrench -help.`
 
 #### Required:
 - `STEAM_WEB_KEY:xyz` You need to create a steam web api key and pass it here, you can create [one here](https://steamcommunity.com/dev). This is used to query steam's api for the latest workshop status
 - `ACF:path_to_file` You must provide a path to the server's steam workshop acf file. The file sits in steam's workshop folder. The file for Project Zomboid should be called `appworkshop_108600.acf`. This is used to parse what mods are actively used on the server. You should never manually edit this file.
 
 #### Optional:
-- ``DISCORD_WEB_HOOK`` You can provide a discord web hook here. The program will send a [small message to said channel with a timestamp to next restart](https://files.vamist.dev/sarcastic-wheat-komododragon/direct.png) (currently 5 mins) and the list of mods that have updated (NOTE: Only past everything after `https://discord.com/api/webhooks`, this was to keep the env less bloated)
+- ``DISCORD_WEB_KEY`` You can provide a discord web hook here. The program will send a [small message to said channel with a timestamp to next restart](https://files.vamist.dev/sarcastic-wheat-komododragon/direct.png) (currently 5 mins) and the list of mods that have updated (NOTE: Only past everything after `https://discord.com/api/webhooks`, this was to keep the env less bloated)
+- ``USER_AGENT`` Is required if ``DISCORD_WEB_KEY`` is provided. This is attached to a request when scraping the changelog from steam. The format should include an email, and the programs name (example: `Wrench - Changelog fetcher - your@email.com`).
 
 ### How does it work?
 Key things to know:
 - It parses the acf file to get a collection of mods
-- It queries steam (in one call) with all the mods, and compares the timestamp
+- It queries steam (in one call) with all the mods, and compares the timestamp from the acf to the latest version.
 - Print's the mod(s) name that need to be updated in terminal (can be captured to be used elsewhere)
 - It will return two different types of exit/term codes depending on the result.
 
 ### Exit codes
 - 0 Means the server should restart, there's an update
-- 1 means there's no update/error/crash/ohgodrun
+- 1 and higher means there's no update/error/crash/oh-god-run
 
 ### Why use exit codes
 I just wanted something that worked without having to over-engineer it
@@ -55,27 +56,17 @@ This is a simple bash script on how to use wrench, and how you could handle an u
 
 export STEAM_WEB_KEY=abcdef
 export ACF=/home/pz/workshop/appworkshop_108600.acf 
-export DISCORD_WEB_HOOK=1236712/abcade
+export DISCORD_WEB_KEY=1236712/abcade
+export USER_AGENT="test@test.com"
  
 while true; do 
     sleep 30
     # && means only run on successful exit (e.g. no error code 1 or higher)
-    ./wrench && (sleep 5m; tmux kill-session -t pz)
+    ./wrench && (sleep 5m; tmux kill-session -t pz; ./start_pz)
 done;
 ```
 
-In my personal server, I use [Just](https://github.com/casey/just) and tmux to handle the server, so I'm able to do stuff like
-`tmux send -t {{session_name}} 'servermsg "{{content}}"' ENTER`. 
-
-This lets me send a message that a mod needs to update, and then safely quit the session by sending /save and /quit.
-
 ## How do I compile?
 - Install rust (https://www.rust-lang.org/tools/install)
+- Make sure you have nightly installed (for simd support when fetching changelogs)
 - `cargo build --release`. The executable will be placed into a new folder called `target/release`
-
-## TODO (maybe):
-- Toml config (?)
-- Custom 5 min timer
-- Allow people to change the webhook pfp & username
-- Move acf into its own lib and maybe put it on crates.io
-- Unit tests on acf
