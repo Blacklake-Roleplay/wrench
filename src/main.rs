@@ -16,6 +16,7 @@ use std::fs;
 use std::ops::Add;
 use std::process::exit;
 use std::time::{Duration, SystemTime};
+use tokio::time::sleep;
 
 /// Steam Api mapping
 #[derive(Deserialize, Debug)]
@@ -168,12 +169,30 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let content = format!("<bzzt> The server is due to restart at <t:{time:?}>, the following mods have been updated: <kssht>");
 
         let header = &args.user_agent.unwrap_or_default();
+
         for mut update in update_list.iter_mut() {
-            update.changelog = fetch_changelog(&update.publishedfileid, header)
-                .await
-                .unwrap_or_else(|| {
-                    "Change log was not provided or could not be fetched.".to_string()
-                });
+            for _ in 0..3 {
+                let result = fetch_changelog(&update.publishedfileid, header).await;
+
+                if let Ok(changelog) = result {
+                    update.changelog = changelog;
+                    break;
+                } else if let Err(retry) = result {
+                    if !retry {
+                        break;
+                    }
+
+                    // If we need to retry, sleep on it
+                    sleep(Duration::from_secs(3)).await
+                }
+            }
+
+            if update.changelog.is_empty() {
+                update.changelog =
+                    "Change log was either not provided or could not be fetched.".to_string();
+            }
+
+            sleep(Duration::from_secs(3)).await;
         }
 
         let embeds = update_list
@@ -213,13 +232,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-async fn fetch_changelog(id: &String, header: &String) -> Option<String> {
+// Returns string or bool, bool means if it should retry
+async fn fetch_changelog(id: &String, header: &String) -> Result<String, bool> {
     let client = reqwest::ClientBuilder::new();
     let client = client.gzip(true).build();
 
     if let Err(why) = client {
         println!("Could not build reqwest client for changelog {id}, {why}");
-        return None;
+        return Err(false);
     }
 
     let req = client
@@ -233,14 +253,22 @@ async fn fetch_changelog(id: &String, header: &String) -> Option<String> {
 
     if let Err(why) = req {
         println!("Could not do changelog request for {id}, {why}");
-        return None;
+        return Err(false);
     }
 
-    let text = req
-        .unwrap()
-        .text()
-        .await
-        .expect("Could not convert text to utf8");
+    let req = req.unwrap();
+
+    if req.status() != 200 {
+        println!(
+            "Status for {id} was {}, reason: {:?}",
+            req.status(),
+            req.error_for_status()
+        );
+
+        return Err(true);
+    }
+
+    let text = req.text().await.expect("Could not convert text to utf8");
 
     let text = text.as_str();
 
@@ -251,7 +279,7 @@ async fn fetch_changelog(id: &String, header: &String) -> Option<String> {
             u32::MAX,
             text
         );
-        return None;
+        return Err(true);
     }
 
     let dom = tl::parse(text, tl::ParserOptions::default()).unwrap();
@@ -261,9 +289,10 @@ async fn fetch_changelog(id: &String, header: &String) -> Option<String> {
         .query_selector(".workshopAnnouncement")
         .and_then(|mut iter| iter.next());
 
+    // Retry, since we most likely got an error page
     if latest_cl.is_none() {
         println!("Could not find .workshopAnnouncement for id {id}, response was {text}");
-        return None;
+        return Err(true);
     }
 
     let content = latest_cl.unwrap().get(parser).unwrap();
@@ -276,15 +305,15 @@ async fn fetch_changelog(id: &String, header: &String) -> Option<String> {
     // This really should not happen, since .workshopAnnouncement was found..
     if p.is_none() {
         println!("Could not find p tag for id {id}, response was {text}");
-        return None;
+        return Err(false);
     }
 
     let text = p.unwrap().get(parser).unwrap().inner_html(parser);
 
     if text.is_empty() {
         println!("Mod {id} has no changelog, p tag is empty");
-        return None;
+        return Err(false);
     }
 
-    Some(text.replace("<br></br>", "\n"))
+    Ok(text.replace("<br></br>", "\n"))
 }
