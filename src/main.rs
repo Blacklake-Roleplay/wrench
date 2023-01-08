@@ -127,7 +127,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         exit(1);
     }
 
-    let res: SteamApiResponse = res.unwrap().json().await?;
+    let body = res?.text().await?;
+
+    let res = serde_json::from_str(&body);
+
+    if let Err(why) = res {
+        println!("Could not parse steams response to json, reason: {why}, body: ({body})");
+        exit(1);
+    }
+
+    let res: SteamApiResponse = res?;
 
     // Iterate in parallel, as we can have quite a few (hundred) mods.
     let mut update_list: Vec<WorkshopContent> = res
@@ -161,8 +170,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let mut rng = thread_rng();
         let time = SystemTime::now()
             .add(Duration::from_secs(60 * 5))
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .unwrap()
+            .duration_since(SystemTime::UNIX_EPOCH)?
             .as_secs();
 
         // TODO: Unsure if time needs to be :?
@@ -233,6 +241,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 // Returns string or bool, bool means if it should retry
+// TODO: Make error an actual error lol
 async fn fetch_changelog(id: &String, header: &String) -> Result<String, bool> {
     let client = reqwest::ClientBuilder::new();
     let client = client.gzip(true).build();
