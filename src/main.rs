@@ -31,10 +31,10 @@ struct Response {
 
 #[derive(Deserialize, Debug)]
 struct WorkshopContent {
-    title: String,
+    title: Option<String>,
     publishedfileid: String,
-    time_updated: u64,
-    preview_url: String,
+    time_updated: Option<u64>,
+    preview_url: Option<String>,
 
     // HACK for changelogs, we stuff the changelog here IF discord is enabled
     #[serde(skip_deserializing)]
@@ -129,14 +129,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let body = res?.text().await?;
 
+    // println!("{body}");
+
     let res = serde_json::from_str(&body);
 
     if let Err(why) = res {
-        println!("Could not parse steams response to json, reason: {why}, body: ({body})");
+        println!("Could not parse steams response to serde_json, reason: {why}, url: {url}");
         exit(1);
     }
 
-    let res: SteamApiResponse = res?;
+    let res: Result<SteamApiResponse, serde_json::Error> = res;
+
+    if let Err(why) = res {
+        println!(
+            "Could not parse steams json response to SteamApiResponse, reason: {why}, url: {url}"
+        );
+        exit(1);
+    }
+
+    let res = res.unwrap();
 
     // Iterate in parallel, as we can have quite a few (hundred) mods.
     let mut update_list: Vec<WorkshopContent> = res
@@ -144,6 +155,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .publishedfiledetails
         .into_par_iter()
         .filter(|details| {
+            // TODO? Make this a hard error for the server to handle?
+            if details.title.is_none() {
+                println!("Workshop mod {} has been removed from the workshop, please manually remove this mod", details.publishedfileid);
+                return false;
+            }
+
             let timestamp = workshop.get(details.publishedfileid.as_str());
 
             if timestamp.is_none() {
@@ -152,8 +169,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             let timestamp = timestamp.unwrap();
 
-            if &details.time_updated > timestamp {
-                println!("{:?} needs updating!", details.title);
+            if &details.time_updated.unwrap() > timestamp {
+                println!("{:?} needs updating!", details.title.clone().unwrap());
                 return true;
             }
 
@@ -206,13 +223,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let embeds = update_list
             .into_iter()
             .map(|update_list| DiscordEmbeds {
-                title: update_list.title,
+                title: update_list.title.unwrap(),
                 color: {
                     let n: u16 = rng.gen();
                     n.to_string()
                 },
                 thumbnail: DiscordEmbedThumbnail {
-                    url: update_list.preview_url,
+                    url: update_list.preview_url.unwrap(),
                 },
                 url: format!(
                     "https://steamcommunity.com/sharedfiles/filedetails/?id={}",
@@ -229,6 +246,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             embeds,
         };
 
+        println!("Posting");
         let client = reqwest::Client::new();
         client
             .post(format!("https://discord.com/api/webhooks/{key}"))
