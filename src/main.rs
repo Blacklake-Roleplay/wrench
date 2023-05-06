@@ -7,6 +7,7 @@ use acf::parser;
 use acf::parser::AcfValue;
 
 use clap::Parser as ClapParser;
+use iter_chunks::IterChunks;
 use rand::{thread_rng, Rng};
 use rayon::prelude::*;
 use reqwest::header::USER_AGENT;
@@ -17,19 +18,21 @@ use std::ops::Add;
 use std::process::exit;
 use std::time::{Duration, SystemTime};
 use tokio::time::sleep;
+use tracing::info_span;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 /// Steam Api mapping
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Default)]
 struct SteamApiResponse {
     response: Response,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Default)]
 struct Response {
     publishedfiledetails: Vec<WorkshopContent>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Default)]
 struct WorkshopContent {
     title: Option<String>,
     publishedfileid: String,
@@ -86,6 +89,14 @@ struct Args {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    tracing_subscriber::registry()
+        .with(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| "wrench=debug".into()),
+        )
+        .with(tracing_subscriber::fmt::layer())
+        .init();
+
     let args = Args::parse();
 
     let acf_file = fs::read_to_string(args.acf_file).unwrap();
@@ -98,56 +109,69 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     if workshop.is_none() {
-        println!("ACF file does not contain any workshop content..");
+        tracing::error!("ACF file does not contain any workshop content..");
         exit(1);
     }
 
     let workshop = workshop.unwrap();
 
-    let all_workshops = {
-        let mut total = String::new();
-        for (pos, map) in workshop.iter().enumerate() {
-            total.push_str(format!("&publishedfileids%5B{}%5D={}", pos, map.0).as_str())
+    let res: SteamApiResponse = {
+        let mut response = SteamApiResponse::default();
+        let mut chunks = workshop.iter().chunks(200);
+
+        while let Some(chunk) = chunks.next() {
+            let workshops = {
+                let mut total = String::new();
+                for (pos, map) in chunk.enumerate() {
+                    total.push_str(format!("&publishedfileids%5B{}%5D={}", pos, map.0).as_str());
+                }
+                total
+            };
+
+            let url = format!("https://api.steampowered.com/IPublishedFileService/GetDetails/v1/?key={}{}&short_description=true&includeforsaledata=false&includemetadata=false&appid=108600&strip_description_bbcode=true", args.steam_key, workshops);
+
+            let client = reqwest::ClientBuilder::new().gzip(true);
+            let client = client
+                .build()
+                .expect("Could not build reqwest client, this is bad");
+
+            let res = client.get(&url).send().await;
+
+            if let Err(why) = res {
+                tracing::error!("Error sending get request to steams api. {why}, req was {url}");
+                exit(1);
+            }
+
+            let body = res?.text().await?;
+
+            let res = serde_json::from_str(&body);
+
+            if let Err(why) = res {
+                tracing::error!(
+                    "Could not parse steams response to serde_json, reason: {why}, url: {url}"
+                );
+                exit(1);
+            }
+
+            let res: Result<SteamApiResponse, serde_json::Error> = res;
+
+            if let Err(why) = res {
+                tracing::error!(
+                "Could not parse steams json response to SteamApiResponse, reason: {why}, url: {url}"
+            );
+                exit(1);
+            }
+
+            let mut res = res.unwrap();
+
+            response
+                .response
+                .publishedfiledetails
+                .append(&mut res.response.publishedfiledetails);
         }
 
-        total
+        response
     };
-
-    let url = format!("https://api.steampowered.com/IPublishedFileService/GetDetails/v1/?key={}{}&short_description=true&includeforsaledata=false&includemetadata=false&appid=108600&strip_description_bbcode=true", args.steam_key, all_workshops);
-
-    let client = reqwest::ClientBuilder::new().gzip(true);
-    let client = client
-        .build()
-        .expect("Could not build reqwest client, this is bad");
-
-    let res = client.get(&url).send().await;
-
-    if let Err(why) = res {
-        println!("Error sending get request to steams api. {why}, req was {url}");
-        exit(1);
-    }
-
-    let body = res?.text().await?;
-
-    // println!("{body}");
-
-    let res = serde_json::from_str(&body);
-
-    if let Err(why) = res {
-        println!("Could not parse steams response to serde_json, reason: {why}, url: {url}");
-        exit(1);
-    }
-
-    let res: Result<SteamApiResponse, serde_json::Error> = res;
-
-    if let Err(why) = res {
-        println!(
-            "Could not parse steams json response to SteamApiResponse, reason: {why}, url: {url}"
-        );
-        exit(1);
-    }
-
-    let res = res.unwrap();
 
     // Iterate in parallel, as we can have quite a few (hundred) mods.
     let mut update_list: Vec<WorkshopContent> = res
@@ -157,7 +181,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .filter(|details| {
             // TODO? Make this a hard error for the server to handle?
             if details.title.is_none() {
-                println!("Workshop mod {} has been removed from the workshop, please manually remove this mod", details.publishedfileid);
+                tracing::error!("Workshop mod {} has been removed from the workshop, please manually remove this mod", details.publishedfileid);
                 return false;
             }
 
@@ -170,7 +194,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let timestamp = timestamp.unwrap();
 
             if &details.time_updated.unwrap() > timestamp {
-                println!("{:?} needs updating!", details.title.clone().unwrap());
+                tracing::error!("{:?} needs updating!", details.title.clone().unwrap());
                 return true;
             }
 
@@ -179,6 +203,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .collect();
 
     if update_list.is_empty() {
+        tracing::info!("No mods need updating");
         exit(1);
     }
 
@@ -265,7 +290,7 @@ async fn fetch_changelog(id: &String, header: &String) -> Result<String, bool> {
     let client = client.gzip(true).build();
 
     if let Err(why) = client {
-        println!("Could not build reqwest client for changelog {id}, {why}");
+        tracing::error!("Could not build reqwest client for changelog {id}, {why}");
         return Err(false);
     }
 
@@ -279,14 +304,14 @@ async fn fetch_changelog(id: &String, header: &String) -> Result<String, bool> {
         .await;
 
     if let Err(why) = req {
-        println!("Could not do changelog request for {id}, {why}");
+        tracing::error!("Could not do changelog request for {id}, {why}");
         return Err(false);
     }
 
     let req = req.unwrap();
 
     if req.status() != 200 {
-        println!(
+        tracing::error!(
             "Status for {id} was {}, reason: {:?}",
             req.status(),
             req.error_for_status()
@@ -301,7 +326,7 @@ async fn fetch_changelog(id: &String, header: &String) -> Result<String, bool> {
 
     // Should probably print here? But if text is that big, that's just silly
     if text.len() > u32::MAX as usize {
-        println!(
+        tracing::error!(
             "Text body bigger then {}, body was {}. Can not be parsed by tl.",
             u32::MAX,
             text
@@ -318,7 +343,7 @@ async fn fetch_changelog(id: &String, header: &String) -> Result<String, bool> {
 
     // Retry, since we most likely got an error page
     if latest_cl.is_none() {
-        println!("Could not find .workshopAnnouncement for id {id}, response was {text}");
+        tracing::error!("Could not find .workshopAnnouncement for id {id}, response was {text}");
         return Err(true);
     }
 
@@ -331,14 +356,14 @@ async fn fetch_changelog(id: &String, header: &String) -> Result<String, bool> {
 
     // This really should not happen, since .workshopAnnouncement was found..
     if p.is_none() {
-        println!("Could not find p tag for id {id}, response was {text}");
+        tracing::error!("Could not find p tag for id {id}, response was {text}");
         return Err(false);
     }
 
     let text = p.unwrap().get(parser).unwrap().inner_html(parser);
 
     if text.is_empty() {
-        println!("Mod {id} has no changelog, p tag is empty");
+        tracing::error!("Mod {id} has no changelog, p tag is empty");
         return Err(false);
     }
 
