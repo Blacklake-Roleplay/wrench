@@ -6,17 +6,6 @@ A small little program used to tell if Project Zomboid needs to restart due to a
 
 ---
 
-# Licence.md 
-Please read the licence.md. You are not allowed to sell what is provided in this project.
-
-## I am virtual server provider:
-You are not allowed to try sell this product as a feature of your platform. 
-You may purchase a copy with the licence removed, where you can do what you want with it, which can also include support/maintenance if required (dm@vamist.dev). 
-
-## I am a zomboid host:
-You are free to use this, as long as you do not try to sell this product.
-I would appreciate credit, or if you are feeling generous, you can donate here: https://ko-fi.com/vamist. 
-
 # How do I use this?
 Here's a small guide
 
